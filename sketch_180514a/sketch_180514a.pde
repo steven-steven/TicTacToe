@@ -5,11 +5,17 @@ ArrayList<Button> btnList = new ArrayList<Button>();    //UI Buttons to display
 
 
 //gameItems
-
+boolean[] gridVal = {false,false,true,false,false,false,false,true,false};
+int margin = 50;
+int gridSize;
+int gridBoxSize;
 
 /*------ Setup -------*/
 void setup() {
   size(500, 500);
+  
+  gridSize = width-margin*2;
+  gridBoxSize = gridSize/3;
   
   btnList.add(new Button("start", "Click To Begin", 20, new PVector(300, 80), new PVector(width/2, height/2)));
   btnList.add(new Button("restart_game", "Restart", 15, new PVector(100, 25), new PVector(80, height-20)));
@@ -51,7 +57,8 @@ void initScreen() {
 void gameScreen() {
   background(255);
   drawText();
- 
+  drawGrid();
+  gridHandler();
 }
 void gameOverScreen() {
   textAlign(CENTER);
@@ -80,6 +87,7 @@ public void mousePressed() {
     }else if (btnList.get(2).btnHovered) {  //restart Button
       pause();
     }
+    
   } else if (screenMode == 3) {  //pause
     if (btnList.get(3).btnHovered) {  //restart Button
       screenMode = 1;
@@ -110,6 +118,22 @@ void drawText() {
   textSize(15);
   text("Life: ", height-20, width-20);
 }
+void drawGrid(){
+   stroke(0);
+   fill(255);
+   
+   rectMode(CENTER);
+   
+   rect(width/2,height/2,gridSize, gridSize);
+   for(int i = 0; i<3; ++i){
+     line(gridSize/3*i + margin, height/2-gridSize/2, gridSize/3*i + margin, height/2+gridSize/2 );
+   }
+   for(int i = 0; i<3; ++i){
+     line(width/2-gridSize/2, gridSize/3*i + margin, width/2+gridSize/2 , gridSize/3*i + margin);
+   }
+   
+}
+
 
 void buttonHandler() {
   if (screenMode ==0) {  //init
@@ -151,6 +175,20 @@ void buttonHandler() {
     }
   }
 }
+
+void gridHandler(){
+    for (int i = 0; i<gridVal.length; ++i) { 
+      if(gridVal[i]){  //if true
+        int col = i%3;
+        int row = i/3;
+        rectMode(CORNER);
+        fill(0);
+        rect(margin+col*gridBoxSize, margin+row*gridBoxSize, gridBoxSize, gridBoxSize);
+      }
+    }
+  
+}
+
 boolean overRect(PVector pos, PVector size) {
   if (mouseX >= pos.x-size.x/2 && mouseX <= pos.x+size.x/2 &&
     mouseY >= pos.y-size.y/2 && mouseY <= pos.y+size.y/2) {
