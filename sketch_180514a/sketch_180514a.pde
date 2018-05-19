@@ -5,14 +5,21 @@ ArrayList<Button> btnList = new ArrayList<Button>();    //UI Buttons to display
 
 
 //gameItems
-boolean[] gridVal = {false,false,true,false,false,false,false,true,false};
+PImage xImg;
+PImage yImg;
+char[] gridVal = {' ',' ','x',' ',' ',' ',' ','o',' '};
 int margin = 50;
 int gridSize;
 int gridBoxSize;
+int currPlayer;
+PImage currImg;
 
 /*------ Setup -------*/
 void setup() {
   size(500, 500);
+  
+  xImg = loadImage("X.PNG");
+  yImg = loadImage("Y.PNG");
   
   gridSize = width-margin*2;
   gridBoxSize = gridSize/3;
@@ -22,10 +29,15 @@ void setup() {
   btnList.add(new Button("pause", "Pause", 15, new PVector(100, 25), new PVector(200, height-20)));
   btnList.add(new Button("continue", "Continue >>", 20, new PVector(300, 80), new PVector(width/2, 150)));
   btnList.add(new Button("restart_pause", "Restart", 20, new PVector(300, 80), new PVector(width/2, 300)));
+  
+  currImg = xImg;
+  currPlayer = 1;
 }
 void restart(){
   screenMode = 0; 
-  
+  for (int i = 0; i<gridVal.length; ++i) {
+     gridVal[i] = ' '; 
+  }
 }
 
 /*------ DRAW -------*/
@@ -40,7 +52,6 @@ void draw() {
   } else if (screenMode == 3) {
     pauseScreen();
   }else {
-    initScreen();
     winScreen();
   }
   buttonHandler();
@@ -59,12 +70,24 @@ void gameScreen() {
   drawText();
   drawGrid();
   gridHandler();
+  checkWin();
 }
 void gameOverScreen() {
   textAlign(CENTER);
   text("YOU LOSE", width/2, height-50);
 }
 void winScreen() {
+  gameScreen();
+  stroke(0);
+  strokeWeight(1);
+  fill(0,100);
+  rectMode(CORNER);
+  rect(0,0,width,height);
+  
+  textAlign(CENTER);
+  textSize(80);
+  fill(255);
+  text("Brick Breaker", width/2, 100);
   textAlign(CENTER);
   text("YOU WIN!!", width/2, height-50);
 }
@@ -87,6 +110,7 @@ public void mousePressed() {
     }else if (btnList.get(2).btnHovered) {  //restart Button
       pause();
     }
+    gridClickHandler();
     
   } else if (screenMode == 3) {  //pause
     if (btnList.get(3).btnHovered) {  //restart Button
@@ -94,11 +118,12 @@ public void mousePressed() {
     }else if (btnList.get(4).btnHovered) {  //restart Button
       restart();
     }
-  }else if (screenMode == 2) {  //gameOver
+  }else if (screenMode == 2 || screenMode == 4) {  //Win
     if (btnList.get(4).btnHovered) {  //restart Button
       restart();
     }
   }
+  
 }
 
 /*Other Functions*/
@@ -138,7 +163,7 @@ void drawGrid(){
 void buttonHandler() {
   if (screenMode ==0) {  //init
     //Submit input button
-    for (int i = 0; i<1; ++i) {  //control/display first 2 botton in arraylist
+    for (int i = 0; i<1; ++i) {  //control/display first 'click to begin' button
       btnList.get(i).drawBtn();
       if (overRect(btnList.get(i).pos, btnList.get(i).size)) {
         btnList.get(i).btnHovered = true;
@@ -147,7 +172,7 @@ void buttonHandler() {
       }
     }
   }else if(screenMode ==1){  //game
-    for (int i = 1; i<3; ++i) {  //control/display first 2 botton in arraylist
+    for (int i = 1; i<3; ++i) {  //control/display 'restart_game', 'pause'
       btnList.get(i).drawBtn();
       if (overRect(btnList.get(i).pos, btnList.get(i).size)) {
         btnList.get(i).btnHovered = true;
@@ -156,7 +181,7 @@ void buttonHandler() {
       }
     }
   }else if(screenMode == 3){  //pause
-    for (int i = 3; i<5; ++i) {  //control/display first 2 botton in arraylist
+    for (int i = 3; i<5; ++i) {  //control/display 'continue', 'restart_pause' button
       btnList.get(i).drawBtn();
       if (overRect(btnList.get(i).pos, btnList.get(i).size)) {
         btnList.get(i).btnHovered = true;
@@ -164,8 +189,8 @@ void buttonHandler() {
         btnList.get(i).btnHovered = false;
       }
     }
-  } else if(screenMode == 2){  //pause
-    for (int i = 4; i<btnList.size(); ++i) {  //control/display first 2 botton in arraylist
+  } else if(screenMode == 2 || screenMode == 4){  //game over or win
+    for (int i = 4; i<btnList.size(); ++i) {  //control/display 'restart_pause' button
       btnList.get(i).drawBtn();
       if (overRect(btnList.get(i).pos, btnList.get(i).size)) {
         btnList.get(i).btnHovered = true;
@@ -173,20 +198,102 @@ void buttonHandler() {
         btnList.get(i).btnHovered = false;
       }
     }
-  }
+  } 
 }
 
 void gridHandler(){
-    for (int i = 0; i<gridVal.length; ++i) { 
-      if(gridVal[i]){  //if true
-        int col = i%3;
-        int row = i/3;
+    for (int i = 0; i<gridVal.length; ++i) {
+      int col = i%3;
+      int row = i/3;
+        
+      if(gridVal[i] == 'x'){  //if true
+        //rectMode(CORNER);
+        //fill(0);
+        //rect(margin+col*gridBoxSize, margin+row*gridBoxSize, gridBoxSize, gridBoxSize);
+        imageMode(CORNER);
+        tint(255,150);
+        image(xImg, margin+col*gridBoxSize, margin+row*gridBoxSize, gridBoxSize-5, gridBoxSize-5);  
+        tint(255,255);
+      }else if(gridVal[i] == 'o'){
+        imageMode(CORNER);
+        tint(255,150);
+        image(yImg, margin+col*gridBoxSize, margin+row*gridBoxSize, gridBoxSize-5, gridBoxSize-5);  
+        tint(255,255);
+      }else if(overRect(new PVector(margin+gridBoxSize/2+col*gridBoxSize, margin+gridBoxSize/2+row*gridBoxSize), new PVector(gridBoxSize,gridBoxSize))){
+        imageMode(CORNER);
+        tint(255,20);
+        image(currImg, margin+col*gridBoxSize, margin+row*gridBoxSize, gridBoxSize-5, gridBoxSize-5);  
+        tint(255,255);
+      }
+    } 
+  
+}
+void gridClickHandler(){  //handle clicked box
+  for (int i = 0; i<gridVal.length; ++i) {
+      int col = i%3;
+      int row = i/3;
+        
+      if(gridVal[i]==' ' && overRect(new PVector(margin+gridBoxSize/2+col*gridBoxSize, margin+gridBoxSize/2+row*gridBoxSize), new PVector(gridBoxSize,gridBoxSize))){
         rectMode(CORNER);
-        fill(0);
+        fill(0);  //black flash on click
         rect(margin+col*gridBoxSize, margin+row*gridBoxSize, gridBoxSize, gridBoxSize);
+  
+        currPlayer ^=1;
+        if(currPlayer == 1){
+          currImg = xImg; 
+          gridVal[i] = 'o';
+        }else{
+          currImg = yImg; 
+          gridVal[i] = 'x';
+        }
       }
     }
+}
+
+void checkWin(){
   
+    int winStrokeWeight = 8;
+    //check diagonals
+    if(gridVal[0]!=' ' && gridVal[0]==gridVal[4] && gridVal[4]==gridVal[8]){
+       stroke(255,0,0);
+       strokeWeight(winStrokeWeight);
+       line(0, 0, width-margin, height-margin);
+       screenMode = 4; //win
+       return;
+    }
+    if(gridVal[2]!=' ' && gridVal[2]==gridVal[4] && gridVal[4]==gridVal[6]){
+       stroke(255,0,0);
+       strokeWeight(winStrokeWeight);
+       line(width-margin, margin, margin, height-margin);
+       screenMode = 4; //win
+       return;
+    }
+    
+    //check rows
+    for (int i = 0; i+2<gridVal.length; i+=3) {
+      if(gridVal[i]!=' ' && gridVal[i]==gridVal[i+1] && gridVal[i+1]==gridVal[i+2] ){
+          stroke(255,0,0);
+          strokeWeight(winStrokeWeight);
+          int row = i/3;
+          line(margin, margin+gridBoxSize*row+gridBoxSize/2, width-margin, margin+gridBoxSize*row+gridBoxSize/2);
+          screenMode = 4; //win
+          return;
+      }
+    }
+    
+    println(gridVal[2]+" "+gridVal[2+3]+" "+gridVal[2+6]);
+    //check columns
+    for (int i = 0; i<3; ++i) {
+      if(gridVal[i]!=' ' && gridVal[i]==gridVal[i+3] && gridVal[i+3]==gridVal[i+6] ){
+         stroke(255,0,0);
+         strokeWeight(winStrokeWeight);
+          int col = i%3;
+          println("WIN "+col);
+          line(margin+gridBoxSize*col+gridBoxSize/2, margin, margin+gridBoxSize*col+gridBoxSize/2, height-margin);
+          screenMode = 4; //win
+          return;
+      }
+    }
 }
 
 boolean overRect(PVector pos, PVector size) {
