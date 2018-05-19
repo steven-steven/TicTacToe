@@ -1,4 +1,4 @@
-int screenMode = 0;  //0:initScreen 1:gameScreen 2:gameOverScreen 3:gameOverScreen
+int screenMode = 0;  //0:initScreen 1:gameScreen 2:tieScreen 3:tieScreen
 
 //UI Controls
 ArrayList<Button> btnList = new ArrayList<Button>();    //UI Buttons to display
@@ -7,12 +7,18 @@ ArrayList<Button> btnList = new ArrayList<Button>();    //UI Buttons to display
 //gameItems
 PImage xImg;
 PImage yImg;
-char[] gridVal = {' ',' ','x',' ',' ',' ',' ','o',' '};
+char[] gridVal = {' ',' ',' ',' ',' ',' ',' ',' ',' '};
 int margin = 50;
 int gridSize;
 int gridBoxSize;
 int currPlayer;
 PImage currImg;
+
+boolean win;  //flag if win
+int stepCount = 0;
+
+char winner;
+int Player1;
 
 /*------ Setup -------*/
 void setup() {
@@ -30,11 +36,13 @@ void setup() {
   btnList.add(new Button("continue", "Continue >>", 20, new PVector(300, 80), new PVector(width/2, 150)));
   btnList.add(new Button("restart_pause", "Restart", 20, new PVector(300, 80), new PVector(width/2, 300)));
   
+  Player1 = 1;
   currImg = xImg;
   currPlayer = 1;
 }
 void restart(){
   screenMode = 0; 
+  stepCount = 0;
   for (int i = 0; i<gridVal.length; ++i) {
      gridVal[i] = ' '; 
   }
@@ -46,9 +54,8 @@ void draw() {
     initScreen();
   } else if (screenMode == 1) {
     gameScreen();
-  } else if (screenMode == 2) {  //gameOver built on top of init
-    initScreen();
-    gameOverScreen();
+  } else if (screenMode == 2) {
+    tieScreen();
   } else if (screenMode == 3) {
     pauseScreen();
   }else {
@@ -70,11 +77,24 @@ void gameScreen() {
   drawText();
   drawGrid();
   gridHandler();
-  checkWin();
+  if(win){
+    checkWin();
+  }
 }
-void gameOverScreen() {
+void tieScreen() {
+  gameScreen();
+  stroke(0);
+  strokeWeight(1);
+  fill(0,100);
+  rectMode(CORNER);
+  rect(0,0,width,height);
+  
   textAlign(CENTER);
-  text("YOU LOSE", width/2, height-50);
+  textSize(80);
+  fill(255);
+  text("TIC TAC TOE", width/2, 100);
+  textAlign(CENTER);
+  text("TIE", width/2, height-50);
 }
 void winScreen() {
   gameScreen();
@@ -87,9 +107,9 @@ void winScreen() {
   textAlign(CENTER);
   textSize(80);
   fill(255);
-  text("Brick Breaker", width/2, 100);
+  text("TIC TAC TOE", width/2, 100);
   textAlign(CENTER);
-  text("YOU WIN!!", width/2, height-50);
+  text(winner+" WIN!!", width/2, height-50);
 }
 void pauseScreen() {
   gameScreen();
@@ -130,7 +150,7 @@ public void mousePressed() {
 void startGame() {
   screenMode = 1;
 }
-void gameOver() {
+void tie() {
   //Reset Game
   screenMode = 2;
 }
@@ -141,7 +161,11 @@ void drawText() {
   textAlign(RIGHT);
   fill(0);
   textSize(15);
-  text("Life: ", height-20, width-20);
+  if(Player1 == 1){
+    text("Player1: X  and  Player: O", height-20, width-20);
+  }else{
+    text("Player1: O  and  Player: X", height-20, width-20);
+  }
 }
 void drawGrid(){
    stroke(0);
@@ -189,7 +213,7 @@ void buttonHandler() {
         btnList.get(i).btnHovered = false;
       }
     }
-  } else if(screenMode == 2 || screenMode == 4){  //game over or win
+  } else if(screenMode == 2 || screenMode == 4){  //tie or win
     for (int i = 4; i<btnList.size(); ++i) {  //control/display 'restart_pause' button
       btnList.get(i).drawBtn();
       if (overRect(btnList.get(i).pos, btnList.get(i).size)) {
@@ -233,24 +257,32 @@ void gridClickHandler(){  //handle clicked box
       int col = i%3;
       int row = i/3;
         
+      //if clicked on the box
       if(gridVal[i]==' ' && overRect(new PVector(margin+gridBoxSize/2+col*gridBoxSize, margin+gridBoxSize/2+row*gridBoxSize), new PVector(gridBoxSize,gridBoxSize))){
+        stepCount++;
         rectMode(CORNER);
         fill(0);  //black flash on click
         rect(margin+col*gridBoxSize, margin+row*gridBoxSize, gridBoxSize, gridBoxSize);
   
-        currPlayer ^=1;
+        currPlayer ^=1;  //toggle player
         if(currPlayer == 1){
           currImg = xImg; 
-          gridVal[i] = 'o';
+          gridVal[i] = 'o';  //value to display(before toggle)
         }else{
           currImg = yImg; 
           gridVal[i] = 'x';
+        }
+        
+        if(checkWin()){
+          win = true;
+        }else if(stepCount == 9){  //tie
+          screenMode = 2;
         }
       }
     }
 }
 
-void checkWin(){
+boolean checkWin(){
   
     int winStrokeWeight = 8;
     //check diagonals
@@ -259,14 +291,16 @@ void checkWin(){
        strokeWeight(winStrokeWeight);
        line(0, 0, width-margin, height-margin);
        screenMode = 4; //win
-       return;
+       winner = gridVal[0];
+       return true;
     }
     if(gridVal[2]!=' ' && gridVal[2]==gridVal[4] && gridVal[4]==gridVal[6]){
        stroke(255,0,0);
        strokeWeight(winStrokeWeight);
        line(width-margin, margin, margin, height-margin);
        screenMode = 4; //win
-       return;
+       winner = gridVal[2];
+       return true;
     }
     
     //check rows
@@ -277,23 +311,25 @@ void checkWin(){
           int row = i/3;
           line(margin, margin+gridBoxSize*row+gridBoxSize/2, width-margin, margin+gridBoxSize*row+gridBoxSize/2);
           screenMode = 4; //win
-          return;
+          winner = gridVal[i];
+          return true;
       }
     }
     
-    println(gridVal[2]+" "+gridVal[2+3]+" "+gridVal[2+6]);
     //check columns
     for (int i = 0; i<3; ++i) {
       if(gridVal[i]!=' ' && gridVal[i]==gridVal[i+3] && gridVal[i+3]==gridVal[i+6] ){
          stroke(255,0,0);
          strokeWeight(winStrokeWeight);
           int col = i%3;
-          println("WIN "+col);
           line(margin+gridBoxSize*col+gridBoxSize/2, margin, margin+gridBoxSize*col+gridBoxSize/2, height-margin);
           screenMode = 4; //win
-          return;
+          winner = gridVal[2];
+          return true;
       }
     }
+    
+    return false;
 }
 
 boolean overRect(PVector pos, PVector size) {
